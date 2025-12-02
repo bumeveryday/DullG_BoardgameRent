@@ -11,7 +11,7 @@ function Admin() {
   const [activeTab, setActiveTab] = useState("dashboard"); // 'dashboard' | 'add' | 'config'
   const [games, setGames] = useState([]);
   const [config, setConfig] = useState([]);
-  const [loading, setLoading] = useState(false);
+  //?? const [loading, setLoading] = useState(false);
 
   // --- 데이터 로딩 ---
   const loadData = async () => {

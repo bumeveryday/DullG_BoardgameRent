@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { fetchGames, rentGame, sendMiss, fetchReviews, addReview, deleteReview, increaseViewCount } from './api';
+import { fetchGames, rentGame, sendMiss, fetchReviews,increaseViewCount } from './api';
 
 function GameDetail() {
   const { id } = useParams();
@@ -17,6 +17,8 @@ function GameDetail() {
   const [reserveForm, setReserveForm] = useState({ name: "", phone: "", count: "", agreed: false });
 
   // (기존 useEffect 로직 유지...)
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (id) increaseViewCount(id);
     const loadData = async () => {
