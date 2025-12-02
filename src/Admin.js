@@ -143,42 +143,54 @@ function Admin() {
         <button onClick={() => setActiveTab("config")} style={tabStyle(activeTab === "config")}>🎨 홈페이지 설정</button>
       </div>
 
-      {activeTab === "dashboard" && (
+     {activeTab === "dashboard" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
-            <h3>🚨 게임 관리 ({games.length})</h3>
-            <button onClick={loadData} style={{ padding: "5px 10px", cursor: "pointer" }}>🔄 새로고침</button>
+            <h3>🚨 게임 관리 (총 {games.length}개)</h3>
+            <button onClick={loadData} style={{ padding: "5px 10px", cursor: "pointer", background:"#f8f9fa", border:"1px solid #ddd", borderRadius:"5px" }}>🔄 새로고침</button>
           </div>
-          <div style={{ display: "grid", gap: "10px" }}>
-            {games.map(game => (
-              <div key={game.id} style={{ border: "1px solid #ddd", padding: "15px", borderRadius: "10px", background: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap:"wrap", gap:"10px" }}>
-                <div style={{ flex: 1, minWidth: "200px" }}>
-                  <div style={{ fontWeight: "bold" }}>
-                    {game.name} 
-                    <span style={{ marginLeft: "8px", fontSize: "0.8em", padding: "2px 6px", borderRadius: "4px", background: getStatusColor(game.status), color:"white" }}>{game.status}</span>
+
+          {/* ⭐ [수정됨] 로딩 중일 때 메시지 표시 (loading 변수 사용) */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "40px", color: "#888" }}>데이터를 불러오는 중... ⏳</div>
+          ) : (
+            <div style={{ display: "grid", gap: "10px" }}>
+              {games.map(game => (
+                <div key={game.id} style={{ border: "1px solid #ddd", padding: "15px", borderRadius: "10px", background: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap:"wrap", gap:"10px", boxShadow: "0 2px 5px rgba(0,0,0,0.03)" }}>
+                  <div style={{ flex: 1, minWidth: "200px" }}>
+                    <div style={{ fontWeight: "bold", fontSize: "1.05em" }}>
+                      {game.name} 
+                      <span style={{ marginLeft: "8px", fontSize: "0.8em", padding: "2px 8px", borderRadius: "12px", background: getStatusColor(game.status), color:"white" }}>
+                        {game.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "0.85em", color: "#666", marginTop: "5px", lineHeight: "1.4" }}>
+                      <span style={{ marginRight: "10px" }}>{game.renter ? `👤 ${game.renter}` : "대여자 없음"}</span>
+                      {game.due_date && <span style={{ color: "#e67e22", marginRight: "10px" }}>📅 {new Date(game.due_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
+                      <br/>
+                      태그: <span style={{color:"#3498db"}}>{game.tags || "(없음)"}</span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: "0.85em", color: "#666", marginTop: "5px" }}>
-                    {game.renter ? `👤 ${game.renter}` : "대여자 없음"} | 태그: <span style={{color:"#3498db"}}>{game.tags || "-"}</span>
+
+                  <div style={{ display: "flex", gap: "5px" }}>
+                    <button onClick={() => handleTagChange(game, game.tags)} style={actionBtnStyle("#9b59b6")}>🏷️ 태그</button>
+                    <button onClick={() => handleDelete(game)} style={{...actionBtnStyle("#fff"), color:"#e74c3c", border:"1px solid #e74c3c", width:"30px", padding:0}} title="삭제">🗑️</button>
+                    {game.status === "찜" ? (
+                      <>
+                        <button onClick={() => handleStatusChange(game.id, "대여중", game.name)} style={actionBtnStyle("#3498db")}>🤝 수령</button>
+                        <button onClick={() => handleStatusChange(game.id, "대여가능", game.name)} style={actionBtnStyle("#e74c3c")}>🚫 취소</button>
+                      </>
+                    ) : game.status !== "대여가능" ? (
+                      <>
+                        <button onClick={() => handleStatusChange(game.id, "대여가능", game.name)} style={actionBtnStyle("#2ecc71")}>↩️ 반납</button>
+                        <button onClick={() => handleStatusChange(game.id, "분실", game.name)} style={actionBtnStyle("#95a5a6")}>⚠️ 분실</button>
+                      </>
+                    ) : null}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "5px" }}>
-                  <button onClick={() => handleTagChange(game, game.tags)} style={actionBtnStyle("#9b59b6")}>🏷️ 태그</button>
-                  <button onClick={() => handleDelete(game)} style={{...actionBtnStyle("#fff"), color:"#e74c3c", border:"1px solid #e74c3c", width:"30px", padding:0}} title="삭제">🗑️</button>
-                  {game.status === "찜" ? (
-                    <>
-                      <button onClick={() => handleStatusChange(game.id, "대여중", game.name)} style={actionBtnStyle("#3498db")}>🤝 수령</button>
-                      <button onClick={() => handleStatusChange(game.id, "대여가능", game.name)} style={actionBtnStyle("#e74c3c")}>🚫 취소</button>
-                    </>
-                  ) : game.status !== "대여가능" ? (
-                    <>
-                      <button onClick={() => handleStatusChange(game.id, "대여가능", game.name)} style={actionBtnStyle("#2ecc71")}>↩️ 반납</button>
-                      <button onClick={() => handleStatusChange(game.id, "분실", game.name)} style={actionBtnStyle("#95a5a6")}>⚠️ 분실</button>
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
