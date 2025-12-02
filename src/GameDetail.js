@@ -188,7 +188,7 @@ function GameDetail() {
       {/* 리뷰 섹션 */}
       {/* 입력 폼 (디자인 개선됨) */}
         <div className="review-form-box">
-          
+          <h3>리뷰 남기기</h3>
           {/* 상단: 닉네임, 비번, 별점 */}
           <div className="review-row top-row">
             <input 
