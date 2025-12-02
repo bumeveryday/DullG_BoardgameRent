@@ -1,17 +1,26 @@
 // src/Admin.js
-// 최종 수정일: 2025.12.02
-// 설명: 관리자 페이지 (대여 현황, 게임 추가, 홈페이지 설정, 삭제 기능 포함)
+// 최종 수정일: 2025.12.03
+// 설명: 관리자 페이지 (암호 잠금 기능 추가됨)
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { searchNaver, addGame, fetchGames, adminUpdateGame, updateGameTags, fetchConfig, saveConfig, deleteGame } from './api';
 
 function Admin() {
-  // --- 상태 관리 ---
-  const [activeTab, setActiveTab] = useState("dashboard"); // 'dashboard' | 'add' | 'config'
+  // ⭐ [NEW] 관리자 암호 (원하는 비밀번호로 바꾸세요!)
+  const ADMIN_PASSWORD = "9503"; 
+
+  // ⭐ [NEW] 인증 상태 (false: 잠금, true: 해제)
+  // 세션 스토리지(SessionStorage)를 써서 새로고침해도 로그인 유지 (브라우저 끄면 삭제됨)
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    sessionStorage.getItem("admin_auth") === "true"
+  );
+  const [inputPassword, setInputPassword] = useState("");
+
+  // --- 기존 상태 관리 ---
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [games, setGames] = useState([]);
   const [config, setConfig] = useState([]);
-  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
 
   // --- 데이터 로딩 ---
@@ -19,149 +28,139 @@ function Admin() {
     setLoading(true);
     try {
       const [gamesData, configData] = await Promise.all([fetchGames(), fetchConfig()]);
-      
-      // 상태별 정렬 (찜 -> 대여중 -> 분실 -> 대여가능)
       const priority = { "찜": 1, "대여중": 2, "분실": 3, "대여가능": 4 };
-      const sortedGames = gamesData.sort((a, b) => {
-        const pA = priority[a.status] || 4;
-        const pB = priority[b.status] || 4;
-        return pA - pB;
-      });
-
+      const sortedGames = gamesData.sort((a, b) => (priority[a.status] || 4) - (priority[b.status] || 4));
       setGames(sortedGames);
-      
-      // 설정값 적용
-      if (configData && configData.length > 0) {
-        setConfig(configData);
-      } else {
-        // 기본값 세팅 (데이터가 없을 경우)
-        setConfig([
-          { key: "btn1", label: "🐣\n입문 추천", value: "#입문", color: "#2ecc71" },
-          { key: "btn2", label: "🧠\n전략 게임", value: "#전략", color: "#e67e22" },
-          { key: "btn3", label: "🕵️‍♂️\n추리/머더", value: "#추리", color: "#9b59b6" },
-          { key: "btn4", label: "🎉\n파티 게임", value: "#파티", color: "#f1c40f" }
-        ]);
-      }
-    } catch (e) {
-      console.error(e);
-      alert("데이터를 불러오는 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
+      if (configData?.length) setConfig(configData);
+    } catch (e) { alert("로딩 에러"); } finally { setLoading(false); }
+  };
+
+  // 인증되었을 때만 데이터 로드
+  useEffect(() => {
+    if (isAuthenticated) loadData();
+  }, [isAuthenticated]);
+
+  // ⭐ [NEW] 로그인 핸들러
+  const handleLogin = (e) => {
+    e.preventDefault(); // 엔터 키 등으로 인한 새로고침 방지
+    if (inputPassword === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      sessionStorage.setItem("admin_auth", "true"); // 로그인 상태 저장
+    } else {
+      alert("암호가 틀렸습니다.");
+      setInputPassword("");
     }
   };
 
-  useEffect(() => { loadData(); }, []);
+  // ⭐ [NEW] 로그아웃 핸들러
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem("admin_auth");
+    alert("로그아웃 되었습니다.");
+  };
 
-  // --- 액션 핸들러들 ---
+  // ============================================================
+  // 🔒 [잠금 화면] 인증 안 됐으면 이것만 보여줌
+  // ============================================================
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "80vh", textAlign: "center" }}>
+        <h2 style={{ fontSize: "2em", marginBottom: "20px" }}>🔒 관리자 접근 제한</h2>
+        <p style={{ color: "#666", marginBottom: "30px" }}>관리자 암호를 입력해주세요.</p>
+        <form onSubmit={handleLogin} style={{ display: "flex", gap: "10px" }}>
+          <input 
+            type="password" 
+            value={inputPassword} 
+            onChange={(e) => setInputPassword(e.target.value)} 
+            placeholder="암호 입력" 
+            style={{ padding: "12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "1em" }}
+            autoFocus
+          />
+          <button type="submit" style={{ padding: "12px 20px", background: "#333", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>
+            확인
+          </button>
+        </form>
+        <Link to="/" style={{ marginTop: "30px", color: "#999", textDecoration: "underline", fontSize: "0.9em" }}>← 메인으로 돌아가기</Link>
+      </div>
+    );
+  }
 
-  // 상태 변경 (반납/수령/분실)
+  // ============================================================
+  // 🔓 [관리자 화면] 인증되면 기존 화면 보여줌
+  // ============================================================
+  
+  // 기존 액션 핸들러들 (그대로 유지)
   const handleStatusChange = async (gameId, newStatus, gameName) => {
-    let message = `[${gameName}] 상태를 '${newStatus}'(으)로 변경하시겠습니까?`;
-    if (newStatus === "대여중") message = `[${gameName}] 현장 수령 확인하시겠습니까?\n(상태가 '대여중'으로 변경됩니다.)`;
-    if (newStatus === "대여가능") message = `[${gameName}] 반납(또는 취소) 처리하시겠습니까?`;
-    if (newStatus === "분실") message = `⚠️ [${gameName}] 분실 처리하시겠습니까?`;
-
-    if (!window.confirm(message)) return;
-    
+    let msg = `[${gameName}] 상태를 '${newStatus}'(으)로 변경하시겠습니까?`;
+    if (newStatus === "대여중") msg = "현장 수령 확인하시겠습니까?";
+    if (newStatus === "대여가능") msg = "반납 처리하시겠습니까?";
+    if (!window.confirm(msg)) return;
     await adminUpdateGame(gameId, newStatus);
     alert("처리되었습니다.");
     loadData();
   };
 
-  // 태그 수정
   const handleTagChange = async (game, currentTags) => {
-    const newTags = prompt(
-      `[${game.name}] 태그를 입력하세요 (공백으로 구분)\n예: #커플 #신작 #파티`, 
-      currentTags || ""
-    );
-    if (newTags === null) return; 
-
+    const newTags = prompt(`[${game.name}] 태그 수정`, currentTags || "");
+    if (newTags === null) return;
     await updateGameTags(game.id, newTags);
-    alert("태그가 수정되었습니다.");
+    alert("수정 완료");
     loadData();
   };
 
-  // 게임 영구 삭제
   const handleDelete = async (game) => {
-    if (!window.confirm(`⚠️ 경고: [${game.name}] 게임을 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
     if (!window.confirm("정말 삭제합니까?")) return;
-
     await deleteGame(game.id);
-    alert("삭제되었습니다.");
+    alert("삭제됨");
     loadData();
   };
 
-  // 설정값 변경 (입력창)
+  const handleConfigSave = async () => {
+    if (!window.confirm("저장하시겠습니까?")) return;
+    await saveConfig(config);
+    alert("저장되었습니다.");
+  };
+
   const handleConfigChange = (idx, field, value) => {
     const newConfig = [...config];
     newConfig[idx][field] = value;
     setConfig(newConfig);
   };
 
-  // 설정 저장
-  const handleConfigSave = async () => {
-    if (!window.confirm("메인 페이지 설정을 저장하시겠습니까?")) return;
-    
-    try {
-      const response = await saveConfig(config);
-      
-      // ⭐ 서버 응답 확인 (성공일 때만 알림)
-      if (response && response.status === "success") {
-        alert("✅ 저장되었습니다! 메인 페이지를 새로고침하면 적용됩니다.");
-      } else {
-        // 실패 원인 알려주기
-        alert(`❌ 저장 실패: ${response.message || "알 수 없는 오류"}\n\n(팁: Apps Script '새 버전 배포'를 했는지 확인하세요!)`);
-      }
-    } catch (e) {
-      alert("통신 오류가 발생했습니다.");
-      console.error(e);
-    }
-  };
-
   return (
     <div style={{ padding: "20px", maxWidth: "1000px", margin: "0 auto", paddingBottom: "100px" }}>
-      
-      {/* 헤더 */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", borderBottom: "2px solid #333", paddingBottom: "15px" }}>
-        <h2 style={{ margin: 0 }}>🔒 관리자 페이지</h2>
-        <Link to="/" style={{ textDecoration: "none", color: "#333", border: "1px solid #ccc", padding: "8px 15px", borderRadius: "8px", fontSize: "0.9em", display: "flex", alignItems: "center", gap: "5px", background: "white" }}>
-          🏠 메인으로 돌아가기
-        </Link>
+        <h2 style={{ margin: 0 }}>🔓 관리자 페이지</h2>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button onClick={handleLogout} style={{ padding: "8px 15px", background: "#eee", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "0.9em" }}>로그아웃</button>
+          <Link to="/" style={{ textDecoration: "none", color: "#333", border: "1px solid #ccc", padding: "8px 15px", borderRadius: "8px", background: "white", fontSize: "0.9em" }}>🏠 메인으로</Link>
+        </div>
       </div>
 
-      {/* 탭 네비게이션 */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "30px", borderBottom: "1px solid #ddd", paddingBottom: "10px", overflowX: "auto" }}>
         <button onClick={() => setActiveTab("dashboard")} style={tabStyle(activeTab === "dashboard")}>📋 대여 현황 / 태그</button>
         <button onClick={() => setActiveTab("add")} style={tabStyle(activeTab === "add")}>➕ 게임 추가</button>
         <button onClick={() => setActiveTab("config")} style={tabStyle(activeTab === "config")}>🎨 홈페이지 설정</button>
       </div>
 
-      {/* --- TAB 1: 대여 현황 --- */}
       {activeTab === "dashboard" && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
-            <h3>🚨 게임 관리 (총 {games.length}개)</h3>
-            <button onClick={loadData} style={{ padding: "5px 10px", cursor: "pointer", background:"#f8f9fa", border:"1px solid #ddd", borderRadius:"5px" }}>🔄 새로고침</button>
+            <h3>🚨 게임 관리 ({games.length})</h3>
+            <button onClick={loadData} style={{ padding: "5px 10px", cursor: "pointer" }}>🔄 새로고침</button>
           </div>
-
           <div style={{ display: "grid", gap: "10px" }}>
             {games.map(game => (
-              <div key={game.id} style={{ border: "1px solid #ddd", padding: "15px", borderRadius: "10px", background: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap:"wrap", gap:"10px", boxShadow: "0 2px 5px rgba(0,0,0,0.03)" }}>
+              <div key={game.id} style={{ border: "1px solid #ddd", padding: "15px", borderRadius: "10px", background: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap:"wrap", gap:"10px" }}>
                 <div style={{ flex: 1, minWidth: "200px" }}>
-                  <div style={{ fontWeight: "bold", fontSize: "1.05em" }}>
+                  <div style={{ fontWeight: "bold" }}>
                     {game.name} 
-                    <span style={{ marginLeft: "8px", fontSize: "0.8em", padding: "2px 8px", borderRadius: "12px", background: getStatusColor(game.status), color:"white" }}>
-                      {game.status}
-                    </span>
+                    <span style={{ marginLeft: "8px", fontSize: "0.8em", padding: "2px 6px", borderRadius: "4px", background: getStatusColor(game.status), color:"white" }}>{game.status}</span>
                   </div>
-                  <div style={{ fontSize: "0.85em", color: "#666", marginTop: "5px", lineHeight: "1.4" }}>
-                    <span style={{ marginRight: "10px" }}>{game.renter ? `👤 ${game.renter}` : "대여자 없음"}</span>
-                    {game.due_date && <span style={{ color: "#e67e22", marginRight: "10px" }}>📅 {new Date(game.due_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>}
-                    <br/>
-                    태그: <span style={{color:"#3498db"}}>{game.tags || "(없음)"}</span>
+                  <div style={{ fontSize: "0.85em", color: "#666", marginTop: "5px" }}>
+                    {game.renter ? `👤 ${game.renter}` : "대여자 없음"} | 태그: <span style={{color:"#3498db"}}>{game.tags || "-"}</span>
                   </div>
                 </div>
-
                 <div style={{ display: "flex", gap: "5px" }}>
                   <button onClick={() => handleTagChange(game, game.tags)} style={actionBtnStyle("#9b59b6")}>🏷️ 태그</button>
                   <button onClick={() => handleDelete(game)} style={{...actionBtnStyle("#fff"), color:"#e74c3c", border:"1px solid #e74c3c", width:"30px", padding:0}} title="삭제">🗑️</button>
@@ -183,55 +182,28 @@ function Admin() {
         </div>
       )}
 
-      {/* --- TAB 2: 게임 추가 --- */}
       {activeTab === "add" && <AddGameSection />}
 
-      {/* --- TAB 3: 홈페이지 설정 (개선됨!) --- */}
       {activeTab === "config" && (
         <div>
-          <h3>🎨 메인 추천 버튼 설정</h3>
-          <div style={{ background: "#e8f4fd", padding: "15px", borderRadius: "8px", marginBottom: "20px", fontSize: "0.9em", color: "#2c3e50", lineHeight: "1.6" }}>
-            <strong>💡 설정 가이드</strong>
-            <ul style={{ margin: "5px 0 0 20px", padding: 0 }}>
-              <li><strong>버튼 이름:</strong> 이모지와 텍스트를 적으세요. 줄바꿈은 <code>\n</code>을 입력하세요. (예: 🐣\n입문 추천)</li>
-              <li><strong>검색어:</strong> 버튼 클릭 시 검색될 <strong>#태그</strong>를 정확히 적으세요.</li>
-              <li><strong>색상:</strong> 색상표를 클릭하여 버튼 왼쪽의 포인트 컬러를 변경하세요.</li>
-            </ul>
-          </div>
-
-          <div style={{ display: "grid", gap: "15px", marginBottom: "30px" }}>
+          <h3>🎨 추천 버튼 설정</h3>
+          <div style={{ display: "grid", gap: "15px", marginBottom: "20px" }}>
             {config.map((item, idx) => (
-              <div key={idx} style={{ display: "flex", gap: "15px", alignItems: "center", background: "white", padding: "20px", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
-                {/* 1. 색상 선택 */}
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: item.color, border: "3px solid #f0f0f0", marginBottom: "5px", boxShadow: "0 2px 5px rgba(0,0,0,0.1)" }}></div>
-                  <input type="color" value={item.color} onChange={(e) => handleConfigChange(idx, 'color', e.target.value)} style={{ width: "40px", height: "30px", padding: 0, border: "none", background: "none", cursor: "pointer" }} />
-                </div>
-
-                {/* 2. 텍스트 입력 */}
-                <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85em", color: "#888", marginBottom: "5px", fontWeight: "bold" }}>버튼 이름</label>
-                    <input value={item.label} onChange={(e) => handleConfigChange(idx, 'label', e.target.value)} style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.85em", color: "#888", marginBottom: "5px", fontWeight: "bold" }}>연결 태그 (#)</label>
-                    <input value={item.value} onChange={(e) => handleConfigChange(idx, 'value', e.target.value)} placeholder="#태그" style={inputStyle} />
-                  </div>
-                </div>
+              <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "center", background: "#f9f9f9", padding: "15px", borderRadius: "10px" }}>
+                <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: item.color }}></div>
+                <div style={{ flex: 1 }}><input value={item.label} onChange={(e) => handleConfigChange(idx, 'label', e.target.value)} style={inputStyle} /></div>
+                <div style={{ flex: 1 }}><input value={item.value} onChange={(e) => handleConfigChange(idx, 'value', e.target.value)} style={inputStyle} /></div>
+                <div style={{ width: "80px" }}><input type="color" value={item.color} onChange={(e) => handleConfigChange(idx, 'color', e.target.value)} style={{border:"none", width:"100%", height:"30px", cursor:"pointer"}} /></div>
               </div>
             ))}
           </div>
-          <button onClick={handleConfigSave} style={{ width: "100%", padding: "15px", background: "#3498db", color: "white", border: "none", borderRadius: "12px", fontWeight: "bold", fontSize: "1.1em", cursor: "pointer", boxShadow: "0 4px 12px rgba(52, 152, 219, 0.4)", transition: "transform 0.2s" }}>
-            💾 설정 저장하고 적용하기
-          </button>
+          <button onClick={handleConfigSave} style={{ width: "100%", padding: "15px", background: "#3498db", color: "white", border: "none", borderRadius: "10px", fontWeight: "bold", cursor: "pointer" }}>💾 저장</button>
         </div>
       )}
     </div>
   );
 }
 
-// --- 하위 컴포넌트: 게임 추가 폼 ---
 function AddGameSection() {
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);

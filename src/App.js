@@ -106,7 +106,7 @@ function Home() {
         filterSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
     }
-  }, [searchTerm, selectedCategory, difficultyFilter, playerFilter, onlyAvailable]); // 이 값들이 변할 때마다 실행
+  }, [searchTerm, selectedCategory, difficultyFilter, playerFilter, onlyAvailable, pageLoading]); // 이 값들이 변할 때마다 실행
 
   // ==========================================
   // 3. 핸들러 함수 (Event Handlers)
