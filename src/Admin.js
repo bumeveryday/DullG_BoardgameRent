@@ -115,15 +115,43 @@ function Admin() {
     loadData();
   };
 
+  
   const handleConfigSave = async () => {
     if (!window.confirm("저장하시겠습니까?")) return;
     await saveConfig(config);
     alert("저장되었습니다.");
   };
 
+// 1. 설정값 변경 (입력창)
   const handleConfigChange = (idx, field, value) => {
     const newConfig = [...config];
     newConfig[idx][field] = value;
+    setConfig(newConfig);
+  };
+
+  // 2. ⭐ [NEW] 버튼 추가
+  const handleAddConfig = () => {
+    const newConfig = [
+      ...config,
+      {
+        key: `btn_${Date.now()}`, // 유니크 키 생성
+        label: "✨\n새 버튼",
+        value: "#태그입력",
+        color: "#95a5a6"
+      }
+    ];
+    setConfig(newConfig);
+  };
+
+  // 3. ⭐ [NEW] 버튼 삭제
+  const handleDeleteConfig = (idx) => {
+    if (config.length <= 1) {
+      alert("최소 1개의 버튼은 있어야 합니다.");
+      return;
+    }
+    if (!window.confirm("이 추천 버튼을 삭제하시겠습니까?")) return;
+    
+    const newConfig = config.filter((_, i) => i !== idx);
     setConfig(newConfig);
   };
 
@@ -150,7 +178,7 @@ function Admin() {
             <button onClick={loadData} style={{ padding: "5px 10px", cursor: "pointer", background:"#f8f9fa", border:"1px solid #ddd", borderRadius:"5px" }}>🔄 새로고침</button>
           </div>
 
-          {/* ⭐ [수정됨] 로딩 중일 때 메시지 표시 (loading 변수 사용) */}
+          {/* 로딩 중일 때 메시지 표시 (loading 변수 사용) */}
           {loading ? (
             <div style={{ textAlign: "center", padding: "40px", color: "#888" }}>데이터를 불러오는 중... ⏳</div>
           ) : (
@@ -199,17 +227,52 @@ function Admin() {
       {activeTab === "config" && (
         <div>
           <h3>🎨 추천 버튼 설정</h3>
-          <div style={{ display: "grid", gap: "15px", marginBottom: "20px" }}>
+            <div style={{ display: "grid", gap: "15px", marginBottom: "20px" }}>
             {config.map((item, idx) => (
-              <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "center", background: "#f9f9f9", padding: "15px", borderRadius: "10px" }}>
-                <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: item.color }}></div>
-                <div style={{ flex: 1 }}><input value={item.label} onChange={(e) => handleConfigChange(idx, 'label', e.target.value)} style={inputStyle} /></div>
-                <div style={{ flex: 1 }}><input value={item.value} onChange={(e) => handleConfigChange(idx, 'value', e.target.value)} style={inputStyle} /></div>
-                <div style={{ width: "80px" }}><input type="color" value={item.color} onChange={(e) => handleConfigChange(idx, 'color', e.target.value)} style={{border:"none", width:"100%", height:"30px", cursor:"pointer"}} /></div>
+              <div key={idx} style={{ display: "flex", gap: "15px", alignItems: "center", background: "white", padding: "20px", borderRadius: "12px", border: "1px solid #eee", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+                
+                {/* 1. 색상 선택 */}
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: item.color, border: "3px solid #f0f0f0", marginBottom: "5px", boxShadow: "0 2px 5px rgba(0,0,0,0.1)", cursor: "pointer", position: "relative", overflow: "hidden" }}>
+                    <input type="color" value={item.color} onChange={(e) => handleConfigChange(idx, 'color', e.target.value)} style={{ position: "absolute", top: "-50%", left: "-50%", width: "200%", height: "200%", opacity: 0, cursor: "pointer" }} />
+                  </div>
+                </div>
+
+                {/* 2. 입력 필드 */}
+                <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85em", color: "#888", marginBottom: "5px", fontWeight: "bold" }}>버튼 이름 (\n 줄바꿈)</label>
+                    <input value={item.label} onChange={(e) => handleConfigChange(idx, 'label', e.target.value)} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.85em", color: "#888", marginBottom: "5px", fontWeight: "bold" }}>연결 태그 (#)</label>
+                    <input value={item.value} onChange={(e) => handleConfigChange(idx, 'value', e.target.value)} placeholder="#태그" style={inputStyle} />
+                  </div>
+                </div>
+
+                {/* 3. ⭐ [NEW] 삭제 버튼 */}
+                <div>
+                  <button 
+                    onClick={() => handleDeleteConfig(idx)} 
+                    style={{ background: "#fff", border: "1px solid #e74c3c", color: "#e74c3c", borderRadius: "8px", width: "40px", height: "40px", cursor: "pointer", fontSize: "1.2em", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    title="이 버튼 삭제"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
             ))}
           </div>
-          <button onClick={handleConfigSave} style={{ width: "100%", padding: "15px", background: "#3498db", color: "white", border: "none", borderRadius: "10px", fontWeight: "bold", cursor: "pointer" }}>💾 저장</button>
+
+          {/* ⭐ [NEW] 하단 액션 버튼들 (추가 / 저장) */}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button onClick={handleAddConfig} style={{ flex: 1, padding: "15px", background: "#95a5a6", color: "white", border: "none", borderRadius: "12px", fontWeight: "bold", fontSize: "1.1em", cursor: "pointer", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}>
+              ➕ 버튼 추가
+            </button>
+            <button onClick={handleConfigSave} style={{ flex: 2, padding: "15px", background: "#3498db", color: "white", border: "none", borderRadius: "12px", fontWeight: "bold", fontSize: "1.1em", cursor: "pointer", boxShadow: "0 4px 12px rgba(52, 152, 219, 0.4)" }}>
+              💾 설정 저장하고 적용하기
+            </button>
+          </div>
         </div>
       )}
     </div>
