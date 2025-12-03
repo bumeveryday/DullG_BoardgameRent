@@ -12,6 +12,8 @@ body {
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* 링크 기본 스타일 제거 */
