@@ -7,7 +7,8 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { fetchGames, fetchTrending, fetchConfig } from './api'; // API 함수들 임포트
 import Admin from './Admin';         // 관리자 페이지 컴포넌트
 import GameDetail from './GameDetail'; // 상세 페이지 컴포넌트
-import './App.css';                  // 스타일시트
+import './App.css';
+import logo from './logo.png';             // 스타일시트
 
 function Home() {
   // ==========================================
@@ -221,8 +222,30 @@ return (
       
       {/* --- [헤더 영역] --- */}
       <header style={{ marginBottom: "30px", textAlign: "center" }}>
-        <h1 style={{ fontSize: "2.5em", marginBottom: "10px", cursor:"pointer" }} onClick={()=>window.location.reload()}>
-          🎲 덜지니어스 대여소
+        {/* 로고 + 텍스트 조합 */}
+        <h1 
+          onClick={() => window.location.reload()}
+          style={{ 
+            fontSize: "2.5em", 
+            marginBottom: "10px", 
+            cursor: "pointer",
+            display: "flex",          /* ⭐ 아이콘과 글자를 가로로 정렬 */
+            alignItems: "center",     /* ⭐ 세로 중앙 정렬 */
+            justifyContent: "center", /* ⭐ 가로 중앙 정렬 */
+            gap: "15px"               /* ⭐ 로고와 글자 사이 간격 */
+          }} 
+        >
+          {/* 🎲 이모지 대신 이미지 태그 사용 */}
+          <img 
+            src={logo} 
+            alt="덜지니어스 로고" 
+            style={{ 
+              height: "1.2em",        /* 글자 크기(1em)보다 살짝 크게 */
+              width: "auto",          /* 비율 유지 */
+              objectFit: "contain"    /* 찌그러짐 방지 */
+            }} 
+          />
+          덜지니어스 대여소
         </h1>
         
         <div style={{ marginBottom: "20px" }}>
@@ -236,8 +259,6 @@ return (
       </header>
 
       {/* --- [대시보드: 추천 테마 + 인기 급상승] --- */}
-      {/* ⭐ [수정] 조건문({!searchTerm && ...})을 제거하여 항상 보이게 만듦 */}
-      {/* 스크롤은 useEffect가 처리하므로 여기서는 숨기지 않습니다. */}
       <div className="trending-wrapper dashboard-container">
           
           {/* 왼쪽: 상황별 추천 */}
