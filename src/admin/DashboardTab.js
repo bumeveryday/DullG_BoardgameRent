@@ -1,6 +1,6 @@
 // src/admin/DashboardTab.js
 import { useState } from 'react';
-import { adminUpdateGame, deleteGame, approveDibsByRenter, returnGamesByRenter, editGame, updateGameTags } from '../api';
+import { adminUpdateGame, deleteGame, approveDibsByRenter, returnGamesByRenter, editGame } from '../api';
 import GameFormModal from './GameFormModal'; // 공통 모달 임포트
 
 function DashboardTab({ games, loading, onReload }) {
