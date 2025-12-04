@@ -322,21 +322,33 @@ a {
   display: flex;
   gap: 10px;
   margin-bottom: 10px;
+  
+  flex-wrap: wrap; 
 }
 
 /* 입력창 공통 스타일 */
 .review-input {
   flex: 1;
+  
+  min-width: 120px; 
   padding: 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 0.95rem;
   outline: none;
   transition: border 0.2s;
+  background: white; 
 }
 
 .review-input:focus {
   border-color: #3498db;
+}
+
+/* 별점 선택창만 따로 스타일 지정 (필요 시) */
+select.review-input {
+  cursor: pointer;
+  /* 텍스트가 너무 길면 말줄임표 처리 */
+  text-overflow: ellipsis; 
 }
 
 /* 등록 버튼 */

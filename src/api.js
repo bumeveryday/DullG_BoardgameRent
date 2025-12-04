@@ -206,3 +206,15 @@ export const verifyAdminPassword = async (password) => {
     body: JSON.stringify(payload),
   }).then(res => res.json());
 };
+
+// 21. 게임 정보 수정하기 (전체 필드)
+export const editGame = async (gameData) => {
+  const payload = {
+    action: "editGame",
+    ...gameData // game_id, name, difficulty 등 포함
+  };
+  return fetch(API_BASE_URL, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }).then(res => res.json());
+};

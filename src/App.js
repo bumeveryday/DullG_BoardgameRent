@@ -52,48 +52,66 @@ function Home() {
     const loadData = async () => {
       // 1. 캐시 확인 (즉시 렌더링)
       const cachedGames = localStorage.getItem('games_cache');
+      const cachedTrending = localStorage.getItem('trending_cache'); 
+      const cachedConfig = localStorage.getItem('config_cache');
       if (cachedGames) {
         setGames(JSON.parse(cachedGames));
-        setPageLoading(false); // 전체 로딩 해제
-        setDataLoading(true);  // 부분 로딩 시작 (최신화)
-      } else {
-        setPageLoading(true);  // 캐시 없으면 전체 로딩
+        setPageLoading(false); // 일단 화면 보여줌
+      }
+      
+      // 추천 버튼(Config) 즉시 표시
+      if (cachedConfig) {
+        setConfig(JSON.parse(cachedConfig));
       }
 
+      // 급상승(Trending)은 ID 목록이라, 게임 데이터가 있어야 매핑 가능
+      if (cachedTrending && cachedGames) {
+        const tList = JSON.parse(cachedTrending);
+        const gList = JSON.parse(cachedGames);
+        const mapped = tList.map(t => gList.find(g => String(g.id) === String(t.id))).filter(Boolean);
+        setTrending(mapped);
+      } else {
+        // 캐시 없으면 부분 로딩 표시
+        if(!cachedGames) setPageLoading(true); 
+        else setDataLoading(true); 
+      }
+
+      // --- [2단계] 서버에서 최신 데이터 받아와서 교체 (백그라운드) ---
       try {
-        // 2. 서버 요청
         const [gamesData, trendingData, configData] = await Promise.all([
           fetchGames(),
           fetchTrending(),
           fetchConfig()
         ]);
 
-        // 3. 데이터 업데이트
+        // 1. 게임 목록 갱신
         if (gamesData?.length) {
           const valid = gamesData.filter(g => g.name && g.name.trim() !== "");
           setGames(valid);
           localStorage.setItem('games_cache', JSON.stringify(valid));
         }
-        
-        // 4. 급상승 데이터 처리 (ID 목록 -> 실제 게임 객체 매핑)
-        if (Array.isArray(trendingData) && gamesData?.length) {
-          setTrending(trendingData.map(t => gamesData.find(g => String(g.id) === String(t.id))).filter(Boolean));
+
+        // 2. 추천 버튼(Config) 갱신
+        if (configData?.length) {
+          setConfig(configData);
+          localStorage.setItem('config_cache', JSON.stringify(configData)); // 저장
         }
 
-        // 5. 설정값(Config) 적용 (없으면 기본값 사용)
-        if (configData?.length) setConfig(configData);
-        else setConfig([
-            { label: "⚡ 순발력 게임", value: "#순발력", color: "#2ecc71" },
-            { label: "🧠 마피아류 게임", value: "#마피아", color: "#e67e22" },
-            { label: "🕵️‍♂️ 25-2 머더부 선정 수작 머더", value: "#머더부", color: "#9b59b6" },
-            { label: "🎉 팀모임 추천", value: "#팀모임", color: "#f1c40f" }
-          ]);
+        // 3. 급상승(Trending) 갱신
+        if (Array.isArray(trendingData) && gamesData?.length) {
+          // ID 목록을 실제 객체로 변환
+          const mapped = trendingData.map(t => gamesData.find(g => String(g.id) === String(t.id))).filter(Boolean);
+          setTrending(mapped);
+          
+          // 원본 데이터(ID목록)만 저장 (용량 절약)
+          localStorage.setItem('trending_cache', JSON.stringify(trendingData)); 
+        }
 
       } catch (e) {
         console.error("데이터 로딩 실패:", e);
-      }finally { 
+      } finally { 
         setPageLoading(false); 
-        setDataLoading(false); // 부분 로딩 종료 // 로딩 완료
+        setDataLoading(false); 
       }
     };
     loadData();
@@ -219,7 +237,9 @@ function Home() {
     </div>
   );
 
-
+ //=======================================
+ // 실제 사이트 디자인!!!!
+ //=======================================
 return (
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
       
@@ -232,20 +252,20 @@ return (
             fontSize: "2.5em", 
             marginBottom: "10px", 
             cursor: "pointer",
-            display: "flex",          /* ⭐ 아이콘과 글자를 가로로 정렬 */
-            alignItems: "center",     /* ⭐ 세로 중앙 정렬 */
-            justifyContent: "center", /* ⭐ 가로 중앙 정렬 */
-            gap: "15px"               /* ⭐ 로고와 글자 사이 간격 */
+            display: "flex",          
+            alignItems: "center",     
+            justifyContent: "center", 
+            gap: "15px"               
           }} 
         >
           {/* 🎲 이모지 대신 이미지 태그 사용 */}
           <img 
             src={logo} 
-            alt="덜지니어스 로고" 
+            alt="덜지니어스 로고" // 덜지 로고 사용
             style={{ 
-              height: "1.2em",        /* 글자 크기(1em)보다 살짝 크게 */
-              width: "auto",          /* 비율 유지 */
-              objectFit: "contain"    /* 찌그러짐 방지 */
+              height: "1.2em",      
+              width: "auto",         
+              objectFit: "contain"    
             }} 
           />
           덜지니어스 대여소
@@ -271,13 +291,9 @@ return (
           <span>💡 <strong>이용 안내 & 공지사항</strong></span>
           <span>{showGuide ? "▲ 접기" : "▼ 펼치기"}</span>
         </button>
-
-        {/* white-space: "pre-wrap" 스타일 덕분에 
-            위의 guideText 변수에 적은 줄바꿈이 그대로 보입니다.
-        */}
         {showGuide && (
           <div className="guide-textarea-view">
-            {TEXTS.MAIN_GUIDE} {/* --------- constants.js로 대체 */}
+            {TEXTS.MAIN_GUIDE} {/*===================== constants.js에서 수정할 것 */}
           </div>
         )}
       </div>
