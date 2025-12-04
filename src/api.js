@@ -132,16 +132,6 @@ export const adminUpdateGame = async (gameId, newStatus) => {
   }).then(res => res.json());
 };
 
-// 13. [관리자] 게임 태그 업데이트
-export const updateGameTags = async (gameId, newTags) => {
-  const payload = {
-    action: "adminUpdate",
-    game_id: gameId,
-    tags: newTags
-  };
-  return fetch(API_BASE_URL, { method: "POST", body: JSON.stringify(payload) }).then(res => res.json());
-};
-
 // 14. [공통] 설정값(Config) 가져오기
 export const fetchConfig = async () => {
   try {
