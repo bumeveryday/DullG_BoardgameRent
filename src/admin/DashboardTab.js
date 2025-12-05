@@ -113,6 +113,26 @@ function DashboardTab({ games, loading, onReload }) {
     }
   };
 
+  // 현장 대여 핸들러 추가
+  const handleDirectRent = async (game) => {
+    // 1. 대여자 이름 입력받기
+    const renterName = prompt(`[${game.name}] 현장 대여자 이름(전화번호)을 입력하세요.\n예: 김철수(010-1234-5678)`);
+    
+    // 취소하거나 빈 값을 입력하면 중단
+    if (!renterName || renterName.trim() === "") return;
+
+    if (window.confirm(`[${game.name}] \n대여자: ${renterName}\n\n현장 대여 처리하시겠습니까?`)) {
+      try {
+        // 2. API 호출 (상태: "대여중", 대여자명 함께 전송)
+        await adminUpdateGame(game.id, "대여중", renterName);
+        alert("✅ 대여 처리되었습니다.");
+        onReload();
+      } catch (e) {
+        alert("처리 실패: " + e);
+      }
+    }
+  };
+
 
   
  // 3. 단순 상태 변경 (분실, 대여취소 등)
@@ -271,7 +291,8 @@ function DashboardTab({ games, loading, onReload }) {
                     <button onClick={() => handleReturn(game)} style={actionBtnStyle("#2ecc71")}>↩️ 반납</button>
                     <button onClick={() => handleStatusChange(game.id, "분실", game.name)} style={actionBtnStyle("#95a5a6")}>⚠️ 분실</button>
                   </>
-                ) : null}
+                ) : 
+                <button onClick={() => handleDirectRent(game)} style={actionBtnStyle("#2c3e50")}>✋ 현장대여</button>}
               </div>
             </div>
           ))}
@@ -309,7 +330,7 @@ function DashboardTab({ games, loading, onReload }) {
                   <tbody>
                     {gameLogs.map((log, idx) => (
                       <tr key={idx} style={{ borderBottom: "1px solid #eee" }}>
-                        <td style={{ padding: "8px", color: "#666" }}>{new Date(log.date).toLocaleDateString()}</td>
+                        <td style={{ padding: "8px", color: "#666" }}>{String(log.date)}</td>
                         <td style={{ padding: "8px", fontWeight: "bold", color: log.type==="RENT"?"#e74c3c":log.type==="RETURN"?"#2ecc71":"#333" }}>
                           {log.type === "RENT" ? "대여" : log.type === "RETURN" ? "반납" : log.type}
                         </td>
@@ -335,7 +356,24 @@ const getStatusColor = (s) => (s==="대여가능"?"#2ecc71":s==="찜"?"#f1c40f":
 const actionBtnStyle = (bgColor) => ({ padding: "6px 12px", border: "none", background: bgColor, color: "white", borderRadius: "6px", cursor: "pointer", fontSize: "0.85em", fontWeight: "bold", boxShadow: "0 2px 4px rgba(0,0,0,0.1)" });
 const styles = {
   card: { border: "1px solid #ddd", padding: "15px", borderRadius: "10px", background: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", boxShadow: "0 2px 5px rgba(0,0,0,0.03)" },
-  statusBadge: { marginLeft: "8px", fontSize: "0.8em", padding: "2px 8px", borderRadius: "12px", color: "white" }
+  statusBadge: { marginLeft: "8px", fontSize: "0.8em", padding: "2px 8px", borderRadius: "12px", color: "white" },
+  
+  modalOverlay: { 
+    position: "fixed",   // 모달 위치 강제 고정
+    top: 0, 
+    left: 0, 
+    right: 0,   // 추가
+    bottom: 0,  // 추가
+    width: "100%", 
+    height: "100%", 
+    background: "rgba(0,0,0,0.5)", 
+    display: "flex", 
+    alignItems: "center", 
+    justifyContent: "center", 
+    zIndex: 9999 // 매우 높은 값으로 설정
+  },
+  modalContent: { background: "white", padding: "25px", borderRadius: "15px", width: "90%", maxWidth: "450px", boxShadow: "0 5px 20px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" },
+  cancelBtn: { padding: "10px 20px", background: "#ddd", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", color: "#555" }
 };
 
 export default DashboardTab;

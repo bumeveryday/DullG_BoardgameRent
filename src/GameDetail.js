@@ -26,6 +26,11 @@ function GameDetail() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // ✅ [추가] 페이지 진입 시 스크롤을 맨 위로 강제 이동 (0.1초 딜레이 없이 즉시)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (id) increaseViewCount(id);

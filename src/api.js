@@ -119,12 +119,13 @@ export const fetchTrending = async () => {
   }
 };
 
-// 12. [관리자] 게임 상태 강제 변경 (반납 처리 등)
-export const adminUpdateGame = async (gameId, newStatus) => {
+// 12. [관리자] 게임 상태 강제 변경 (현장 대여 포함)
+export const adminUpdateGame = async (gameId, newStatus, renterName = null) => {
   const payload = {
     action: "adminUpdate",
     game_id: gameId,
-    status: newStatus
+    status: newStatus,
+    renter: renterName // ⭐ 대여자 이름 추가 전송
   };
   return fetch(API_BASE_URL, {
     method: "POST",
