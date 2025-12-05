@@ -208,3 +208,15 @@ export const editGame = async (gameData) => {
     body: JSON.stringify(payload),
   }).then(res => res.json());
 };
+
+// 22. [관리자] 특정 게임 로그 조회
+export const fetchGameLogs = async (gameId) => {
+  const payload = {
+    action: "getGameLogs",
+    game_id: gameId
+  };
+  return fetch(API_BASE_URL, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }).then(res => res.json());
+};

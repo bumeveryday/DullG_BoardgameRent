@@ -47,30 +47,42 @@ function Admin() {
   const [config, setConfig] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // 데이터 로딩 함수 (대시보드와 설정 탭에서 새로고침 시 사용)
+// --- 데이터 로딩 (SWR 패턴 적용) ---
   const loadData = async () => {
-    setLoading(true);
+    // 1. (배경) 로딩 표시 시작
+    setLoading(true); 
     try {
       const [gamesData, configData] = await Promise.all([fetchGames(), fetchConfig()]);
       
-      // 정렬 로직 (찜 > 대여중 > 분실 > 대여가능)
+      // 정렬 로직 (우선순위: 찜 > 대여중 > 분실 > 대여가능)
       const priority = { "찜": 1, "대여중": 2, "분실": 3, "대여가능": 4 };
       const sortedGames = gamesData.sort((a, b) => (priority[a.status] || 4) - (priority[b.status] || 4));
       
       setGames(sortedGames);
       if (configData?.length) setConfig(configData);
+
+      // ⭐ [핵심] 최신 데이터를 받으면 로컬 스토리지도 갱신한다! (유저 페이지와 공유)
+      localStorage.setItem('games_cache', JSON.stringify(sortedGames));
+
     } catch (e) { 
-      alert("데이터 로딩 실패"); 
+      alert("데이터 로딩 실패 (인터넷 연결 확인)"); 
     } finally { 
       setLoading(false); 
     }
   };
 
   // 인증 성공 시 데이터 최초 로드
-  useEffect(() => {
-    if (isAuthenticated) loadData();
+useEffect(() => {
+    if (isAuthenticated) {
+      // 캐시가 있으면 먼저 보여준다! (0초 로딩)
+      const cachedGames = localStorage.getItem('games_cache');
+      if (cachedGames) {
+        setGames(JSON.parse(cachedGames));
+      }
+      loadData();
+    }
   }, [isAuthenticated]);
-
+  
 
   // --- 3. 렌더링: 잠금 화면 ---
   if (!isAuthenticated) {

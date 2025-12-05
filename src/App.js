@@ -9,7 +9,8 @@ import Admin from './Admin';         // 관리자 페이지 컴포넌트
 import GameDetail from './GameDetail'; // 상세 페이지 컴포넌트
 import { TEXTS } from './constants'; // 텍스트 수집 
 import './App.css';
-import logo from './logo.png';             // 스타일시트
+import logo from './logo.png'; 
+import FilterBar from './FilterBar';            // 스타일시트
 
 function Home() {
   // ==========================================
@@ -362,40 +363,17 @@ return (
       </div>
 
       {/* --- [필터 바 UI] --- */}
-      {/* ⭐ 여기에 ref={filterSectionRef}가 있어서 스크롤이 이리로 이동함 */}
-      <div ref={filterSectionRef} style={{ background: "#f8f9fa", padding: "20px", borderRadius: "15px", marginBottom: "30px", display: "flex", flexWrap: "wrap", gap: "15px", alignItems: "center", justifyContent: "center" }}>
-        
-        {/* 검색창 */}
-        <input type="text" placeholder="🔍 검색 (태그는 #)" value={inputValue} onChange={(e) => setInputValue(e.target.value)} style={{ padding: "10px 15px", borderRadius: "20px", border: "1px solid #ddd", width: "200px" }} />
-        
-        {/* 드롭다운들 */}
-        <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }}>
-          {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
-        <select value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value)} style={{ padding: "10px", borderRadius: "10px", border: "1px solid #ddd" }}>
-          <option value="전체">난이도 전체</option>
-          <option value="입문">🐣 입문 (0~2점)</option>
-          <option value="초중급">🎲 초중급 (2~3점)</option>
-          <option value="전략">🧠 전략 (3점+)</option>
-        </select>
-        <select value={playerFilter} onChange={(e) => setPlayerFilter(e.target.value)} style={{ padding: "10px", borderRadius: "10px", border: "1px solid #ddd", fontWeight: playerFilter !== "all" ? "bold" : "normal", color: playerFilter !== "all" ? "#3498db" : "black" }}>
-          <option value="all">인원수 전체</option>
-          <option value="2">2인</option>
-          <option value="3">3인</option>
-          <option value="4">4인</option>
-          <option value="5">5인</option>
-          <option value="6+">6인 이상</option>
-        </select>
-
-        {/* 체크박스 & 초기화 */}
-        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", userSelect: "none" }}>
-          <input type="checkbox" checked={onlyAvailable} onChange={(e) => setOnlyAvailable(e.target.checked)} style={{ transform: "scale(1.2)" }} />
-          <span style={{ fontWeight: onlyAvailable ? "bold" : "normal" }}>대여 가능만</span>
-        </label>
-        
-        <button onClick={resetFilters} style={{ padding: "10px 15px", background: "#e74c3c", color: "white", border: "none", borderRadius: "20px", cursor: "pointer", fontWeight: "bold", display: "flex", alignItems: "center", gap: "5px" }}>
-          🔄 초기화
-        </button>
+      <div ref={filterSectionRef}>
+        <FilterBar 
+          inputValue={inputValue} setInputValue={setInputValue}
+          selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
+          difficultyFilter={difficultyFilter} setDifficultyFilter={setDifficultyFilter}
+          playerFilter={playerFilter} setPlayerFilter={setPlayerFilter}
+          onlyAvailable={onlyAvailable} setOnlyAvailable={setOnlyAvailable}
+          categories={categories}
+          onReset={resetFilters}
+          // isAdmin은 안 넣으면 기본값 false (유저용)
+        />
       </div>
 
       <div style={{ marginBottom: "15px", color: "#666", fontSize: "0.9em", marginLeft: "5px" }}>
