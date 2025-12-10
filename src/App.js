@@ -182,7 +182,7 @@ function Home() {
   // 4. 필터링 로직 (Core Logic)
   // ==========================================
   const filteredGames = useMemo(() => {
-    return games.filter(game => {
+    const result = games.filter(game => {
       // (1) 유령 데이터 방어
       if (!game.name || game.name.trim() === "") return false;
 
@@ -219,6 +219,7 @@ function Home() {
 
       return true; // 모든 관문 통과 시 표시
     });
+    return result.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   }, [games, searchTerm, selectedCategory, onlyAvailable, difficultyFilter, playerFilter]);
 
   // 카테고리 목록 동적 생성 (데이터에 존재하는 것만)

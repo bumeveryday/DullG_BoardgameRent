@@ -71,6 +71,7 @@ function FilterBar({
         <option value="4">4인</option>
         <option value="5">5인</option>
         <option value="6+">6인 이상</option>
+        <option value="8+">8인 이상</option>
       </select>
 
       {/* 6. 대여 가능만 보기 체크박스 */}
