@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // 앱스 스크립트 주소
-const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwtjZhBcbg_DJkKRWxXk4SDliyjwExcszPX7QAaEf2kuLQjJ0eXC_611dhf9ojRbvpT/exec";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 // 1. 전체 게임 목록 가져오기
 export const fetchGames = async () => {

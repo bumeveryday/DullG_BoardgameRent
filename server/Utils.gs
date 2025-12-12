@@ -364,3 +364,20 @@ function getUserInfoById(userId) {
   }
   return null;
 }
+
+// 16. [Helper] Game ID로 상태(Status) 조회
+function getStatusById(sheet, gameId) {
+  const data = sheet.getDataRange().getValues();
+  const h = data[0];
+  const colId = h.indexOf("id");
+  const colStatus = h.indexOf("status");
+  
+  if (colId === -1 || colStatus === -1) return "Unknown";
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][colId]) === String(gameId)) {
+      return data[i][colStatus];
+    }
+  }
+  return "Unknown";
+}

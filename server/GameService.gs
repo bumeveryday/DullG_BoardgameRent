@@ -191,8 +191,15 @@ function requestRestock(payload) {
 // 6. 조회수 증가
 function incrementViewCount(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  incrementStatSafe(ss.getSheetByName(SHEET_NAMES.GAMES), payload.game_id, "total_views");
-  logAction(ss.getSheetByName(SHEET_NAMES.LOGS), payload.game_id, "VIEW", "1", "Anonymous");
+  const gameSheet = ss.getSheetByName(SHEET_NAMES.GAMES);
+  
+  // 조회 시점의 상태(대여가능/대여중/찜)를 가져옴
+  const currentStatus = getStatusById(gameSheet, payload.game_id);
+  
+  incrementStatSafe(gameSheet, payload.game_id, "total_views");
+  
+  // 로그 Value에 상태를 기록 (예: "VIEW", "대여가능")
+  logAction(ss.getSheetByName(SHEET_NAMES.LOGS), payload.game_id, "VIEW", currentStatus, "Anonymous");
   return responseJSON({ status: "success" });
 }
 

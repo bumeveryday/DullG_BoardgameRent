@@ -32,7 +32,7 @@ const MyPage = ({ user }) => {
       setLoading(false);
     };
     loadRentals();
-  }, [studentId]);
+  }, [studentId, userName]);
 
   return (
     <div style={styles.container}>

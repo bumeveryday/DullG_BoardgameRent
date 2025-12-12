@@ -1,70 +1,47 @@
-# Getting Started with Create React App
+# 🎲 덜지니어스 보드게임 대여소 (DullG BoardGameRent) - Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+이 프로젝트는 덜지니어스 부원들이 보드게임을 대여/반납하고 관리할 수 있는 웹 서비스의 **프론트엔드(React)** 부분입니다.
 
-## Available Scripts
+## 🚀 시작하기 (Getting Started)
 
-In the project directory, you can run:
+이 프로젝트를 로컬 컴퓨터에서 실행하려면 다음 단계가 필요합니다.
 
-### `npm start`
+### 1. 필수 설치 프로그램
+*   [Node.js](https://nodejs.org/) (LTS 버전 권장)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 2. 프로젝트 실행
+터미널(cmd, powershell, vscode 터미널 등)에서 프로젝트 폴더로 이동한 후 아래 명령어를 순서대로 입력하세요.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+# 1. 라이브러리 설치 (최초 1회만 필요)
+npm install
 
-### `npm test`
+# 2. 개발 서버 시작
+npm start
+```
+명령어를 입력하면 자동으로 브라우저가 열리며 `http://localhost:3000` 주소로 접속됩니다.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## ⚙️ 환경 설정 (.env)
 
-### `npm run build`
+API 서버 주소 등은 `.env` 파일에서 관리합니다. 프로젝트 루트에 `.env` 파일이 있어야 정상 작동합니다.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```ini
+# .env 예시
+REACT_APP_API_BASE_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
+```
+*   `REACT_APP_API_BASE_URL`: Google Apps Script 배포 URL
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 📂 백엔드 (Server)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+백엔드 로직(Google Apps Script)과 데이터베이스(Google Sheet)에 대한 설명은 `server` 폴더 안의 문서를 참고하세요.
 
-### `npm run eject`
+👉 [**백엔드 설명서 보러가기**](./server/README.md)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## 📦 배포 (Build)
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+웹 사이트를 실제 서버에 올리기 위해 빌드하려면 다음 명령어를 사용합니다.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```bash
+npm run build
+```
+`build` 폴더에 생성된 파일들을 정적 호스팅 서비스(GitHub Pages, Vercel, Netlify 등)에 업로드하여 배포합니다.
