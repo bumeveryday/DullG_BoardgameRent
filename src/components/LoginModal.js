@@ -1,115 +1,126 @@
 import { useState, useEffect } from 'react';
 import { TEXTS } from '../constants';
-import { signupUser, loginUser } from '../api'; // [New] 회원가입/로그인 API 임포트
+import { signupUser, loginUser } from '../api';
 
 function LoginModal({ isOpen, onClose, onConfirm, gameName, currentUser, sessionUser, setSessionUser, setUser }) {
-  // 입력값 상태
-  const [name, setName] = useState("");
-  const [studentId, setStudentId] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState(""); // [New] 회원가입용 비밀번호
-  const [isLoading, setIsLoading] = useState(false); // [New] 로딩 상태
-  // [New] UI 뷰 모드 관리 ('form' | 'info')
-  // 로딩 중에 currentUser가 업데이트되어도 화면이 깜빡이지 않도록 제어
-  // 초기값은 mount 시점의 currentUser 여부에 따라 결정됨 (re-render 시 변하지 않음)
-  const [viewMode] = useState(currentUser ? 'info' : 'form');
+  // 공통상태
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 모달이 열릴 때 초기화 (Mount 시 1회 실행)
+  // 게스트(비로그인) 전용 입력 상태
+  const [guestName, setGuestName] = useState("");
+  const [guestId, setGuestId] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guestPw, setGuestPw] = useState("");
+
+  // 모달 초기화
   useEffect(() => {
     if (isOpen) {
-      // 입력값 초기화
-      if (currentUser) {
-        // ✅ Case 1: 이미 로그인된 상태 (부모에게서 정보 받음)
-        setName(currentUser.name);
-        setStudentId(currentUser.studentId || currentUser.student_id || "");
-        setPhone(currentUser.phone || "");
-      } else {
-        // ✅ Case 2: 비로그인 상태
-        const saved = localStorage.getItem('user');
-        if (saved) {
-          const user = JSON.parse(saved);
-          setName(user.name);
-          setStudentId(user.studentId);
-        } else {
-          setName("");
-          setStudentId("");
-          setPhone("");
-        }
+      setIsLoading(false);
+      // 게스트 폼 리셋
+      setGuestName("");
+      setGuestId("");
+      setGuestPhone("");
+      setGuestPw("");
+
+      // 편의성: 로컬스토리지에 남은 정보가 있다면 채워줌 (비로그인 상태라도)
+      if (!currentUser) {
+        try {
+          const saved = localStorage.getItem('user');
+          if (saved) {
+            const u = JSON.parse(saved);
+            setGuestName(u.name || "");
+            setGuestId(u.studentId || "");
+          }
+        } catch (e) { }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ✅ 의존성 배열 비움: Mount 시점에만 실행 (중간에 currentUser 바뀌어도 폼 유지)
+  }, [isOpen, currentUser]);
 
-  // 대여 버튼 클릭 핸들러
-  const handleSubmit = async () => {
-    // 1. 필수 정보 입력 확인 (이름/연락처가 없더라도 학번/비번이 있으면 로그인 시도로 간주하고 통과)
-    // [Fix] 이 검증 로직은 "비로그인 유저"에게만 적용되어야 함 (로그인된 유저는 password가 빈 값이어도 됨)
-    if (!currentUser) {
-      const isLoginTry = studentId && password;
-      const isFullSignup = name && studentId && phone && password;
+  /**
+   * [Mode 1] 로그인 유저: Frictionless Rental
+   * - 추가 입력 없이 확인만 하고 즉시 대여 요청
+   * - 비밀번호가 없는 세션(구버전 등)일 경우, 복잡한 처리 대신 재로그인 유도 (깔끔한 흐름 유지)
+   */
+  const handleMemberRent = async () => {
+    // 방어코드: currentUser가 없는데 이 함수가 호출될 리 없지만 혹시 모를 대비
+    if (!currentUser) return;
 
-      if (!isLoginTry && !isFullSignup) {
-        // 학번/비번도 없고, 전체 정보도 없으면 에러
-        if (!studentId || !password) return alert(TEXTS.ALERT_PASSWORD_REQUIRED);
-      }
+    if (!currentUser.password) {
+      // GameDetail.js 에서도 처리하지만, 여기서도 한번 더 방어
+      alert("보안을 위해 다시 로그인이 필요합니다.\n(비밀번호 정보가 만료되었습니다)");
+      onClose();
+      return;
     }
 
-    // [Fix] 항상 비밀번호 확인 (회원가입 강제) - 로그인 안 된 경우에만
-    if (!currentUser && !password) return alert(TEXTS.ALERT_PASSWORD_REQUIRED);
-
-    if (isLoading) return; // 중복 클릭 방지
+    if (isLoading) return;
     setIsLoading(true);
 
     try {
-      // 2. 임시 유저(Guest)라면 세션에 저장 (LoginModal은 이제 항상 Login/Signup을 시도함)
-      if (!currentUser) {
-        if (setSessionUser) setSessionUser({ name, studentId, phone });
+      // 즉시 대여 요청
+      await onConfirm({
+        name: currentUser.name,
+        studentId: currentUser.studentId || currentUser.student_id,
+        phone: currentUser.phone,
+        password: currentUser.password
+      });
+      // 성공하면 부모가 모달을 닫음
+    } catch (e) {
+      alert(e.message || TEXTS.ALERT_AUTH_ERROR);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        // 3. 비로그인 상태일 때 회원가입 또는 로그인 시도
-        let res;
+  /**
+   * [Mode 2] 비로그인 유저: Sign-up/Login & Rent
+   * - 폼 입력 -> 가입/로그인 -> 대여 -> (성공 시) 앱 상태 업데이트
+   */
+  const handleGuestRent = async () => {
+    // 유효성 검사
+    if (!guestId || !guestPw) {
+      return alert(TEXTS.ALERT_PASSWORD_REQUIRED);
+    }
 
-        // 이름이나 전화번호가 비어있으면 -> "로그인" 시도로 간주
-        if (!name || !phone) {
-          res = await loginUser(studentId, password);
-        } else {
-          // 모든 정보가 있으면 -> "회원가입(또는 자동로그인)" 시도
-          res = await signupUser({ name, studentId, password, phone });
-        }
+    if (isLoading) return;
+    setIsLoading(true);
 
-        if (!res.success) {
-          throw new Error(TEXTS.ALERT_AUTH_FAIL + res.message);
-        }
-
-        // ✅ [New] 가입/로그인 성공 시 앱 전체 상태 업데이트 (로그인 유지)
-        let userToSave = res.user;
-
-        if (!userToSave) {
-          // 2. 서버가 안 줬으면(신규 가입) 입력값으로 구성
-          userToSave = { name, studentId, phone };
-        }
-
-        // 3. 비밀번호 포함 (로컬스토리지 저장용)
-        userToSave.password = password;
-
-        // ⭐ [Critical] App.js의 메인 user 상태(setUser)를 업데이트해야 로그인 된 것으로 처리됨
-        if (setUser) setUser(userToSave);
-        else if (setSessionUser) setSessionUser(userToSave);
-
-        localStorage.setItem("user", JSON.stringify(userToSave));
+    try {
+      let res;
+      // 이름/폰 유무에 따라 로그인 vs 회원가입 분기
+      if (!guestName || !guestPhone) {
+        res = await loginUser(guestId, guestPw);
+      } else {
+        res = await signupUser({
+          name: guestName,
+          studentId: guestId,
+          password: guestPw,
+          phone: guestPhone
+        });
       }
 
-      // ✅ 비밀번호 결정 (입력한 비번 or 기존 비번)
-      const passwordToSend = currentUser ? currentUser.password : password;
+      if (!res.success) {
+        throw new Error(TEXTS.ALERT_AUTH_FAIL + res.message);
+      }
 
-      // 4. 대여 확정 (Backend에서는 이제 무조건 인증을 거침)
-      // [Fix] 비동기 처리 및 에러 시 모달 유지
-      // 성공 시에만 부모 컴포넌트(GameDetail)가 setIsLoginModalOpen(false)를 하도록 위임
+      // 로그인/가입 성공. 대여 요청 준비
+      const userToSave = res.user || {
+        name: guestName,
+        studentId: guestId,
+        phone: guestPhone
+      };
+      userToSave.password = guestPw; // 입력한 비밀번호 저장
+
+      // 1. 대여 요청 먼저 수행 (실패하면 상태 업데이트 안 함)
       await onConfirm({
-        name,
-        studentId,
-        phone,
-        password: passwordToSend
+        name: userToSave.name,
+        studentId: userToSave.studentId || userToSave.student_id,
+        phone: userToSave.phone,
+        password: userToSave.password
       });
+
+      // 2. 대여 성공 시에만 앱 상태 업데이트 (로그인 유지)
+      localStorage.setItem("user", JSON.stringify(userToSave));
+      if (setUser) setUser(userToSave);
 
     } catch (e) {
       alert(e.message || TEXTS.ALERT_AUTH_ERROR);
@@ -118,8 +129,44 @@ function LoginModal({ isOpen, onClose, onConfirm, gameName, currentUser, session
     }
   };
 
+
   if (!isOpen) return null;
 
+  // ------------------------------------------------------------------
+  // 렌더링 분기: 로그인 상태 여부에 따라 완전히 다른 UI 리턴
+  // ------------------------------------------------------------------
+
+  // [VIEW 1] Member Mode (로그인 상태)
+  if (currentUser) {
+    return (
+      <div style={styles.overlay}>
+        <div style={styles.modal}>
+          <h3>{TEXTS.USER_MODAL_TITLE}</h3>
+          <p style={{ color: "#666", fontSize: "0.9em", marginBottom: "20px" }}
+            dangerouslySetInnerHTML={{ __html: TEXTS.USER_MODAL_DESC.replace("{gameName}", gameName) }}
+          />
+
+          <div style={{ background: "#f0f9ff", padding: "20px", borderRadius: "10px", marginBottom: "20px" }}>
+            <div style={{ fontSize: "1.2em", fontWeight: "bold", color: "#2c3e50" }}>{currentUser.name} 님</div>
+            <div style={{ color: "#7f8c8d", fontSize: "0.9em", marginTop: "5px" }}>{currentUser.studentId || currentUser.student_id}</div>
+
+            <p style={{ color: "#3498db", fontSize: "0.85em", marginTop: "15px" }}
+              dangerouslySetInnerHTML={{ __html: TEXTS.USER_MODAL_LOGGED_IN_DESC }}
+            />
+          </div>
+
+          <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+            <button onClick={onClose} style={styles.cancelBtn} disabled={isLoading}>{TEXTS.BTN_CANCEL}</button>
+            <button onClick={handleMemberRent} style={{ ...styles.confirmBtn, opacity: isLoading ? 0.7 : 1 }} disabled={isLoading}>
+              {isLoading ? TEXTS.BTN_RENT_LOADING : TEXTS.BTN_RENT_NOW}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // [VIEW 2] Guest Mode (비로그인 상태)
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -128,67 +175,54 @@ function LoginModal({ isOpen, onClose, onConfirm, gameName, currentUser, session
           dangerouslySetInnerHTML={{ __html: TEXTS.USER_MODAL_DESC.replace("{gameName}", gameName) }}
         />
 
-        {viewMode === 'info' ? (
-          <div style={{ background: "#f0f9ff", padding: "20px", borderRadius: "10px", marginBottom: "20px" }}>
-            <div style={{ fontSize: "1.2em", fontWeight: "bold", color: "#2c3e50" }}>{currentUser.name} 님</div>
-            <div style={{ color: "#7f8c8d", fontSize: "0.9em", marginTop: "5px" }}>{currentUser.studentId}</div>
-            <div style={{ color: "#7f8c8d", fontSize: "0.9em" }}>{currentUser.phone}</div>
+        <form style={{ display: "flex", flexDirection: "column", gap: "10px" }} onSubmit={(e) => { e.preventDefault(); handleGuestRent(); }}>
+          <input
+            placeholder="이름 (예: 홍길동)"
+            value={guestName}
+            onChange={(e) => setGuestName(e.target.value)}
+            style={styles.input}
+            autoComplete="name"
+          />
+          <input
+            placeholder="학번 (예: 22400001)"
+            value={guestId}
+            onChange={(e) => setGuestId(e.target.value)}
+            style={styles.input}
+            type="number"
+            maxLength={8}
+            autoComplete="username"
+            onInput={(e) => {
+              if (e.target.value.length > 8) e.target.value = e.target.value.slice(0, 8);
+            }}
+          />
+          <input
+            placeholder="연락처 (010-0000-0000)"
+            value={guestPhone}
+            onChange={(e) => setGuestPhone(e.target.value)}
+            style={styles.input}
+            autoComplete="tel"
+          />
 
-            <p style={{ color: "#3498db", fontSize: "0.85em", marginTop: "15px" }}
-              dangerouslySetInnerHTML={{ __html: TEXTS.USER_MODAL_LOGGED_IN_DESC }}
-            />
+          <input
+            type="password"
+            placeholder="비밀번호 입력 (필수)"
+            value={guestPw}
+            onChange={(e) => setGuestPw(e.target.value)}
+            style={styles.input}
+            autoComplete="current-password"
+          />
+
+          <div style={{ fontSize: "0.85em", color: "#888", marginTop: "5px", lineHeight: "1.4", background: "#f9f9f9", padding: "10px", borderRadius: "8px" }}>
+            <span dangerouslySetInnerHTML={{ __html: TEXTS.MODAL_SIGNUP_PROMO }} />
           </div>
-        ) : (
-          <form style={{ display: "flex", flexDirection: "column", gap: "10px" }} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-            <input
-              placeholder="이름 (예: 홍길동)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={styles.input}
-              autoComplete="name"
-            />
-            <input
-              placeholder="학번 (예: 22400001)"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              style={styles.input}
-              type="number"
-              maxLength={8}
-              autoComplete="username"
-              onInput={(e) => {
-                if (e.target.value.length > 8) e.target.value = e.target.value.slice(0, 8);
-              }}
-            />
-            <input
-              placeholder="연락처 (010-0000-0000)"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              style={styles.input}
-              autoComplete="tel"
-            />
 
-            {/* [New] 항상 비밀번호 입력 (회원가입/로그인 필수) */}
-            <input
-              type="password"
-              placeholder="비밀번호 입력 (필수)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={styles.input}
-              autoComplete="current-password"
-            />
-
-            <div style={{ fontSize: "0.85em", color: "#888", marginTop: "5px", lineHeight: "1.4", background: "#f9f9f9", padding: "10px", borderRadius: "8px" }}>
-              <span dangerouslySetInnerHTML={{ __html: TEXTS.MODAL_SIGNUP_PROMO }} />
-            </div>
-          </form>
-        )}
-
-        <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
-          <button onClick={onClose} style={styles.cancelBtn} disabled={isLoading}>{TEXTS.BTN_CANCEL}</button>
-          <button onClick={handleSubmit} style={{ ...styles.confirmBtn, opacity: isLoading ? 0.7 : 1 }} disabled={isLoading}>
-            {isLoading ? TEXTS.BTN_RENT_LOADING : (viewMode === 'info' ? TEXTS.BTN_RENT_NOW : TEXTS.BTN_RENT_LOGIN_REQUIRED)}
-          </button>
-        </div>
+          <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+            <button type="button" onClick={onClose} style={styles.cancelBtn} disabled={isLoading}>{TEXTS.BTN_CANCEL}</button>
+            <button type="submit" style={{ ...styles.confirmBtn, opacity: isLoading ? 0.7 : 1 }} disabled={isLoading}>
+              {isLoading ? TEXTS.BTN_RENT_LOADING : TEXTS.BTN_RENT_LOGIN_REQUIRED}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

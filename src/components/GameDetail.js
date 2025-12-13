@@ -84,7 +84,21 @@ function GameDetail({ user, setUser, sessionUser, setSessionUser }) {
       setGame({ ...game, status: "찜" });
       setIsLoginModalOpen(false); // 모달 닫기
     } catch (e) {
-      alert("대여 실패: " + (e.message || "오류가 발생했습니다."));
+      const errMsg = e.message || "오류가 발생했습니다.";
+
+      // [Fix] 로그인된 상태에서 "비밀번호 불일치"가 뜨면 세션이 꼬인 것이므로 로그아웃 처리
+      if (errMsg.includes("비밀번호") || errMsg.includes("일치하지")) {
+        alert("로그인 정보가 변경되거나 만료되었습니다.\n다시 로그인해주세요.");
+
+        // 강제 로그아웃
+        localStorage.removeItem("user");
+        if (setUser) setUser(null);
+
+        // 다시 모달 열기 (비로그인 상태로)
+        setIsLoginModalOpen(true);
+      } else {
+        alert("대여 실패: " + errMsg);
+      }
     }
   };
 

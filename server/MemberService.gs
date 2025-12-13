@@ -246,25 +246,14 @@ function handleReturn(userId, gameId) {
   const now = new Date();
   
   // 1. Rentals 시트에서 해당 유저가 해당 게임을 빌린 행 찾기
-  // (헤더가 1행에 있다고 가정하고 index 1부터 시작)
-  let rowIndexToDelete = -1;
-  let rentalId = "";
+  // [Refactor] gameId만으로 대여 기록을 찾아 삭제하도록 변경 (deleteRentalByGameId 활용)
+  // 이유: user_id가 학번/이름으로 혼용될 수 있으나, game_id는 물리적으로 유일하므로 더 신뢰 가능.
+  // 또한, 중복된 대여 기록(버그 등)이 있을 경우 모두 청소하기 위함.
+  
+  // 삭제 수행 (삭제된 행이 있으면 성공으로 간주)
+  deleteRentalByGameId(gameId);
 
-  for (let i = 1; i < data.length; i++) {
-    // data[i][1] -> user_id, data[i][2] -> game_id 라고 가정
-    if (data[i][1] == userId && data[i][2] == gameId) {
-      rowIndexToDelete = i + 1; // 실제 행 번호는 인덱스 + 1
-      rentalId = data[i][0];    // rental_id 백업
-      break;
-    }
-  }
-
-  if (rowIndexToDelete === -1) {
-    return createJSONOutput({ status: "error", message: "대여 기록을 찾을 수 없습니다." });
-  }
-
-  // 2. Rentals 시트에서 행 삭제 (반납 처리)
-  rentalsSheet.deleteRow(rowIndexToDelete);
+  // 2. (삭제 로직은 위 함수로 대체됨)
 
   // 3. Logs 시트에 반납 기록 추가
   logsSheet.appendRow([
@@ -336,6 +325,7 @@ function getMyRentals(params) {
 
 
 // [New] 반납 시 Rentals 시트 동기화 (행 삭제)
+// [Update] 중복 데이터 방지를 위해 역순으로 순회하며 모두 삭제
 function deleteRentalByGameId(gameId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const rentalSheet = ss.getSheetByName("Rentals");
@@ -343,14 +333,18 @@ function deleteRentalByGameId(gameId) {
 
   const data = rentalSheet.getDataRange().getValues();
   // Rentals 시트 구조: rental_id(0) | user_id(1) | game_id(2) ...
-  // 헤더가 1행에 있다고 가정하고 2행(index 1)부터 탐색
-  for (let i = 1; i < data.length; i++) {
-    // game_id가 일치하는 행을 발견하면
+  // 헤더가 1행에 있으므로 data길이-1 부터 1(index 1)까지 역순 탐색
+  
+  let deletedCount = 0;
+  for (let i = data.length - 1; i >= 1; i--) {
+    // game_id가 일치하는 행을 발견하면 (String 변환 비교)
     if (String(data[i][2]) === String(gameId)) {
       rentalSheet.deleteRow(i + 1); // 행 삭제
-      break; // 게임당 대여는 1건이므로 찾으면 즉시 종료
+      deletedCount++;
+      // break를 하지 않음 -> 중복된 기록이 있다면 모두 삭제 (Clean Up)
     }
   }
+  Logger.log(`[DeleteRental] GameId: ${gameId}, Deleted Rows: ${deletedCount}`);
 }
 
 

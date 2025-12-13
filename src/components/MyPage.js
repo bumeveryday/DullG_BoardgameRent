@@ -76,11 +76,12 @@ const MyPage = ({ user }) => {
               const dDayStr = getDDayString(item.dueDate);
               const isOverdue = dDayStr.includes("연체");
               const isToday = dDayStr === "오늘 반납";
+              const isDibs = dDayStr === "곧 찜 만료";
 
               // 상태에 따른 뱃지 색상
               let badgeColor = "#2ecc71"; // 초록 (여유)
               if (isToday) badgeColor = "#f39c12"; // 주황 (당일)
-              if (isOverdue) badgeColor = "#e74c3c"; // 빨강 (연체)
+              if (isOverdue || isDibs) badgeColor = "#e74c3c"; // 빨강 (연체/임박)
 
               return (
                 <div key={item.rentalId} style={styles.rentalItem}>
@@ -117,15 +118,25 @@ const InfoItem = ({ label, value }) => (
 // 날짜 계산 헬퍼 함수들
 const getDDayString = (dueDateString) => {
   if (!dueDateString) return "-";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
   const due = new Date(dueDateString);
-  due.setHours(0, 0, 0, 0);
-  const diffTime = due - today;
+
+  // 날짜 차이 계산 (일 단위)
+  const todayZero = new Date(now); todayZero.setHours(0, 0, 0, 0);
+  const dueZero = new Date(due); dueZero.setHours(0, 0, 0, 0);
+  const diffTime = dueZero - todayZero;
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return `연체 ${Math.abs(diffDays)}일`;
-  if (diffDays === 0) return "오늘 반납";
+  if (diffDays === 0) {
+    // [Fix] 당일 반납인데, 만약 시간이 1시간 이내로 남았다면 "찜(예약)"으로 간주
+    // (물론 당일치기 대여일 수도 있지만, 정책상 1시간 미만이면 급한 건으로 표시해도 무방)
+    const diffHours = (due - now) / (1000 * 60 * 60);
+    if (diffHours < 1 && diffHours > -1) { // 1시간 전후면
+      return "곧 찜 만료";
+    }
+    return "오늘 반납";
+  }
   return `D-${diffDays}`;
 };
 

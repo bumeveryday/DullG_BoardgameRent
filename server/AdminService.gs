@@ -65,11 +65,26 @@ function updateGameStatusOrTags(payload) {
     }
 
     // [NEW] 만약 어드민이 강제로 "대여중"으로 상태를 바꿨다면, Rentals에도 추가해줘야 함
-    if (payload.status === "대여중" && userIdForLog && userIdForLog !== "ExistingUser" && userIdForLog !== "Admin") {
+    if (payload.status === "대여중" && userIdForLog !== "ExistingUser" && userIdForLog !== "Admin") {
+       
+       // [Fix] ID가 없고 이름만 있다면, Users 시트에서 학번 역추적 (완전한 해결책)
+       if (!userIdForLog && renterDisplay) {
+          const users = getData(SHEET_NAMES.USERS);
+          const foundUser = users.find(u => u.name === renterDisplay);
+          if (foundUser) {
+             userIdForLog = foundUser.student_id || foundUser.studentId;
+          }
+       }
+
+       if (userIdForLog) {
        // 게임 이름 찾기
        const gameName = getGameNameById(gameSheet, payload.game_id);
        // 중복 방지를 위해 Rental이 없는 경우에만 추가하는 로직이 있으면 좋지만, 간단히 추가
+       // [Fix] 기존 찜/대여 기록이 있을 수 있으므로 먼저 삭제 (중복 방지)
+       deleteRentalByGameId(payload.game_id);
+
        addRentalRow(userIdForLog, payload.game_id, gameName);
+       }
     }
 
     // 2️⃣ 상태 업데이트 실행 (반납이면 여기서 시트의 대여자 정보가 지워짐)
@@ -111,9 +126,23 @@ function batchApproveDibs(payload) {
     // 만약 renter_id가 없다면(비회원/구버전 등), payload로 넘어온 user_id를 쓸 수도 있음 (선택사항)
     if (!userId && payload.user_id) userId = payload.user_id;
 
+    // [Fix] 그래도 ID가 없다면, 이름으로 Users 시트에서 학번을 역추적 (학번 통일 보장)
+    if (!userId && payload.renter_name) {
+       const users = getData(SHEET_NAMES.USERS);
+       // Users 시트: Name(0), ID(1)
+       const foundUser = users.find(u => u.name === payload.renter_name);
+       if (foundUser) {
+          userId = foundUser.student_id || foundUser.studentId; // 컬럼명 유동적 대응
+       }
+    }
+
     // 2️⃣ Rentals 시트에 대여 기록 확정 (실제 대여 시작)
     // ID가 없으면 이름이라도 기록
     const finalId = userId || payload.renter_name || "Unknown";
+    
+    // [Fix] 기존 찜(Dibs) 기록 삭제 후 대여(Rent) 기록 추가 (중복 방지)
+    deleteRentalByGameId(gameId);
+    
     addRentalRow(finalId, gameId, gameName);
 
     // 3️⃣ Games 시트 상태 변경 (대여중)
