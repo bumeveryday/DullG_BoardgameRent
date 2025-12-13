@@ -508,35 +508,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Home에 user 상태와 handleLogout 전달 */}
-        <Route
-          path="/"
-          element={
-
-            <Home
-              user={user}
-              onLogout={handleLogout}
-              sessionUser={sessionUser}
-              setSessionUser={setSessionUser}
-            />
-          }
-        />
-
+        <Route path="/" element={<Home user={user} onLogout={handleLogout} sessionUser={sessionUser} setSessionUser={setSessionUser} />} />
         {/* GameDetail에 user와 sessionUser 전달 */}
-        <Route
-          path="/game/:id"
-          element={
-            <GameDetail
-              user={user}
-              setUser={setUser} // ✅ setUser 전달
-              sessionUser={sessionUser}
-              setSessionUser={setSessionUser}
-            />
-          }
-        />
-        <Route path="/mypage" element={
-          user ? <MyPage user={user} /> : <Navigate to="/login" replace />
-        }
-        />
+        <Route path="/game/:id" element={<GameDetail user={user} setUser={setUser} sessionUser={sessionUser} setSessionUser={setSessionUser} />} />
+        <Route path="/mypage" element={user ? <MyPage user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/login" element={<Login setUser={setUser} />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/admin-secret" element={<Admin />} />

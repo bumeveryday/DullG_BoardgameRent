@@ -143,6 +143,25 @@ function handleGameRent(params) {
     targetId                         // ⭐ renter_id (학번)
   );
 
+  // [Fix] MyPage 노출을 위해 Rentals 시트에도 기록 추가 (30분 기한)
+  // MemberService는 같은 프로젝트 내에 있으므로 호출 가능
+  try {
+     const rentalsSheet = ss.getSheetByName("Rentals") || ss.insertSheet("Rentals");
+     const rentalId = Utilities.getUuid();
+     
+     // 순서: rental_id | user_id | game_id | game_name | borrowed_at | due_date
+     rentalsSheet.appendRow([
+       rentalId, 
+       targetId,   
+       gameId, 
+       gameName, 
+       now.toISOString(), 
+       thirtyMinutesLater.toISOString() 
+     ]);
+  } catch (e) {
+     Logger.log("Rentals update failed: " + e.toString());
+  }
+
   // 로그 남기기
   logAction(logSheet, gameId, "DIBS", "방문 수령 예약", targetId);
 

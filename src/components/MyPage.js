@@ -8,7 +8,8 @@ const MyPage = ({ user }) => {
   const [loading, setLoading] = useState(true);
 
   // user props에서 정보 추출 (안전하게 옵셔널 체이닝 사용)
-  const studentId = user?.student_id;
+  // [Fix] camelCase(studentId)와 snake_case(student_id) 모두 지원
+  const studentId = user?.studentId || user?.student_id;
   const userName = user?.name;
   const userPhone = user?.phone;
 

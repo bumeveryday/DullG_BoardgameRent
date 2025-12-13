@@ -75,12 +75,20 @@ export const TEXTS = {
   USER_MODAL_LOGGED_IN_DESC: `✨ 로그인된 계정으로 대여합니다.<br />30분이 지나면 예약이 취소되니, <br />늦기 전에 동아리방에서 수령해가세요!`,
 
   USER_MODAL_GUEST_INFO_LOADED: "⚡ 이전에 입력한 정보를 불러왔습니다.",
-  USER_MODAL_GUEST_SIGNUP_PROMO: `비밀번호만 더하면 회원가입이 끝나요.<br />매번 입력하기 귀찮다면? `,
+  // [Modified] 회원가입 강제 안내 문구
+  MODAL_SIGNUP_PROMO: `회원가입이 되어있지 않다면 자동으로 가입됩니다.<br/>이미 가입한 경우, 학번과 비밀번호만 입력해주세요.<br/>현장에서 학번과 비밀번호 확인 후 대여가 이루어집니다.`,
 
   // 버튼 텍스트
   BTN_CANCEL: "취소",
-  BTN_RENT_NOW: "바로 대여하기",
-  BTN_RENT_AFTER_INFO: "정보 입력 후 대여",
+  BTN_RENT_NOW: "찜하기",
+  BTN_RENT_LOGIN_REQUIRED: "로그인 후 대여", // [New]
+  BTN_RENT_LOADING: "진행중...", // [New]
+
+  // 알림 메시지 (Alerts)
+  ALERT_INFO_REQUIRED: "정보를 모두 입력해주세요.",
+  ALERT_PASSWORD_REQUIRED: "비밀번호를 입력해주세요.",
+  ALERT_AUTH_FAIL: "로그인/회원가입 실패: ",
+  ALERT_AUTH_ERROR: "처리 중 오류가 발생했습니다: ",
 
   // GameDetail 알림
   ALERT_RENT_SUCCESS: "✅ 예약 완료! 30분 내에 수령해주세요.",
