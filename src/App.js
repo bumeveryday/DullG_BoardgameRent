@@ -346,7 +346,7 @@ function Home({ user, onLogout, sessionUser, setSessionUser }) {
           </a>
         </div>
 
-        <div><Link to="/admin-secret" style={{ fontSize: "0.8em", color: "#ccc", textDecoration: "none" }}>Admin</Link></div>
+
       </header>
 
 
